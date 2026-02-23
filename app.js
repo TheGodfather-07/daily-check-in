@@ -2,14 +2,35 @@ let data = JSON.parse(localStorage.getItem("habitData")) || {
     habits: [],
     streak: 0,
     longest: 0,
-    history: {}
+    history: {},
+    lastDate: null
 };
 
-const today = new Date().toISOString().split('T')[0];
+const today = new Date().toISOString().split("T")[0];
 
-if (!data.history[today]) {
+const quotes = [
+    "Discipline builds empires.",
+    "Consistency beats motivation.",
+    "Small wins compound.",
+    "Momentum rising.",
+    "Execution > excuses.",
+    "You’re becoming unstoppable."
+];
+
+if (data.lastDate !== today) {
     data.habits.forEach(h => h.done = false);
-    data.history[today] = 0;
+
+    if (data.lastDate) {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yString = yesterday.toISOString().split("T")[0];
+
+        if (!data.history[yString]) {
+            data.streak = 0;
+        }
+    }
+
+    data.lastDate = today;
 }
 
 function save() {
@@ -25,8 +46,8 @@ function addHabit() {
     render();
 }
 
-function toggleHabit(index) {
-    data.habits[index].done = !data.habits[index].done;
+function toggleHabit(i) {
+    data.habits[i].done = !data.habits[i].done;
     updateProgress();
     save();
     render();
@@ -34,20 +55,29 @@ function toggleHabit(index) {
 
 function updateProgress() {
     const completed = data.habits.filter(h => h.done).length;
-    const percent = data.habits.length === 0 ? 0 : 
-        Math.round((completed / data.habits.length) * 100);
+    const percent = data.habits.length ? 
+        Math.round((completed / data.habits.length) * 100) : 0;
 
     document.getElementById("progressFill").style.width = percent + "%";
-    document.getElementById("progressText").innerText = percent + "% Complete";
+    document.getElementById("progressText").innerText = percent + "%";
 
-    if (percent === 100 && data.history[today] === 0) {
-        data.streak++;
-        data.longest = Math.max(data.longest, data.streak);
+    if (percent === 100 && !data.history[today]) {
         data.history[today] = 1;
+        data.streak++;
+        if (data.streak > data.longest) data.longest = data.streak;
+        showQuote();
     }
 
-    document.getElementById("globalStreak").innerText = data.streak;
-    document.getElementById("longestStreak").innerText = data.longest;
+    document.getElementById("streak").innerText = data.streak;
+    document.getElementById("longest").innerText = data.longest;
+}
+
+function showQuote() {
+    const box = document.getElementById("quoteBox");
+    const text = document.getElementById("quoteText");
+    const random = quotes[Math.floor(Math.random() * quotes.length)];
+    text.innerText = random;
+    box.classList.remove("hidden");
 }
 
 function render() {
@@ -57,7 +87,7 @@ function render() {
         const li = document.createElement("li");
         li.innerHTML = `
             ${h.name}
-            <input type="checkbox" ${h.done ? "checked" : ""} 
+            <input type="checkbox" ${h.done ? "checked" : ""}
             onclick="toggleHabit(${i})">
         `;
         list.appendChild(li);
@@ -67,14 +97,14 @@ function render() {
 }
 
 function renderHeatmap() {
-    const grid = document.getElementById("heatmapGrid");
-    grid.innerHTML = "";
-    Object.keys(data.history).slice(-30).forEach(date => {
+    const heatmap = document.getElementById("heatmap");
+    heatmap.innerHTML = "";
+    const days = Object.keys(data.history).slice(-30);
+    days.forEach(d => {
         const cell = document.createElement("div");
-        cell.className = "heatmap-cell";
-        if (data.history[date] === 1)
-            cell.style.background = "#00f5ff";
-        grid.appendChild(cell);
+        cell.className = "cell";
+        if (data.history[d]) cell.style.background = "#00f5ff";
+        heatmap.appendChild(cell);
     });
 }
 
@@ -98,4 +128,9 @@ function importData(event) {
     reader.readAsText(file);
 }
 
+function toggleTheme() {
+    document.body.classList.toggle("light");
+}
+
 render();
+save();
