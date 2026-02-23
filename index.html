@@ -1,48 +1,52 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>ULTIMATE HABIT TRACKER</title>
-<link rel="stylesheet" href="style.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cyber Habit Tracker</title>
+<link rel="stylesheet" href="style.css">
 <link rel="manifest" href="manifest.json">
 </head>
 <body>
 
 <div class="container">
+
     <h1>⚡ CYBER HABIT TRACKER</h1>
 
     <div class="top-bar">
         <div>
-            <h3>🔥 Global Streak: <span id="globalStreak">0</span></h3>
-            <h4>🏆 Longest: <span id="longestStreak">0</span></h4>
+            <p>🔥 Streak: <span id="streak">0</span></p>
+            <p>🏆 Longest: <span id="longest">0</span></p>
         </div>
-        <button id="toggleTheme">Toggle Theme</button>
+        <button onclick="toggleTheme()">Toggle Theme</button>
     </div>
 
-    <div class="progress-section">
+    <div class="progress-wrapper">
         <div class="progress-bar">
             <div class="progress-fill" id="progressFill"></div>
         </div>
-        <p id="progressText">0% Complete</p>
+        <p id="progressText">0%</p>
+    </div>
+
+    <div id="quoteBox" class="quote-box hidden">
+        <p id="quoteText"></p>
     </div>
 
     <div class="habit-input">
-        <input type="text" id="habitInput" placeholder="Add a new habit..." />
+        <input type="text" id="habitInput" placeholder="Add a habit...">
         <button onclick="addHabit()">Add</button>
     </div>
 
     <ul id="habitList"></ul>
 
-    <div class="heatmap">
-        <h3>Consistency Heatmap</h3>
-        <div id="heatmapGrid"></div>
-    </div>
+    <h3>Consistency Heatmap (Last 30 Days)</h3>
+    <div id="heatmap"></div>
 
-    <div class="backup-section">
-        <button onclick="exportData()">Export Backup</button>
+    <div class="backup">
+        <button onclick="exportData()">Export</button>
         <input type="file" onchange="importData(event)">
     </div>
+
 </div>
 
 <script src="app.js"></script>
