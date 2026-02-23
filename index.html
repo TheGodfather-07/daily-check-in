@@ -1,288 +1,50 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Ultimate Productivity System</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #0f172a;
-      color: white;
-      margin: 0;
-      padding: 0;
-      text-align: center;
-    }
-
-    h1 { margin-top: 20px; }
-
-    .container {
-      max-width: 600px;
-      margin: 20px auto;
-    }
-
-    input {
-      padding: 10px;
-      width: 65%;
-      border-radius: 6px;
-      border: none;
-    }
-
-    button {
-      padding: 10px 15px;
-      border-radius: 6px;
-      border: none;
-      cursor: pointer;
-      background: #22c55e;
-      color: white;
-      font-weight: bold;
-    }
-
-    ul {
-      list-style: none;
-      padding: 0;
-      margin-top: 20px;
-    }
-
-    li {
-      background: #1e293b;
-      padding: 10px;
-      margin: 8px 0;
-      border-radius: 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 14px;
-    }
-
-    .completed {
-      text-decoration: line-through;
-      opacity: 0.6;
-    }
-
-    .streak { font-size: 12px; color: #facc15; }
-
-    .delete {
-      background: red;
-      padding: 4px 8px;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 12px;
-    }
-
-    .progress-container {
-      background: #334155;
-      border-radius: 20px;
-      margin-top: 20px;
-      height: 20px;
-      overflow: hidden;
-    }
-
-    .progress-bar {
-      height: 100%;
-      background: #22c55e;
-      width: 0%;
-      transition: width 0.3s;
-    }
-
-    .stats {
-      margin-top: 15px;
-      font-size: 14px;
-    }
-
-    .quote {
-      margin-top: 20px;
-      font-style: italic;
-      opacity: 0.8;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ULTIMATE HABIT TRACKER</title>
+<link rel="stylesheet" href="style.css" />
+<link rel="manifest" href="manifest.json">
 </head>
-
 <body>
 
-<h1>🔥 Ultimate Productivity System</h1>
-
 <div class="container">
+    <h1>⚡ CYBER HABIT TRACKER</h1>
 
-  <input type="text" id="taskInput" placeholder="Add a daily habit">
-  <button onclick="addTask()">Add</button>
+    <div class="top-bar">
+        <div>
+            <h3>🔥 Global Streak: <span id="globalStreak">0</span></h3>
+            <h4>🏆 Longest: <span id="longestStreak">0</span></h4>
+        </div>
+        <button id="toggleTheme">Toggle Theme</button>
+    </div>
 
-  <div class="progress-container">
-    <div class="progress-bar" id="progressBar"></div>
-  </div>
+    <div class="progress-section">
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <p id="progressText">0% Complete</p>
+    </div>
 
-  <div class="stats" id="dailyStats"></div>
-  <div class="stats" id="lifetimeStats"></div>
-  <div class="stats" id="yesterdayStats"></div>
+    <div class="habit-input">
+        <input type="text" id="habitInput" placeholder="Add a new habit..." />
+        <button onclick="addHabit()">Add</button>
+    </div>
 
-  <ul id="taskList"></ul>
+    <ul id="habitList"></ul>
 
-  <div class="quote" id="quoteBox"></div>
+    <div class="heatmap">
+        <h3>Consistency Heatmap</h3>
+        <div id="heatmapGrid"></div>
+    </div>
 
+    <div class="backup-section">
+        <button onclick="exportData()">Export Backup</button>
+        <input type="file" onchange="importData(event)">
+    </div>
 </div>
 
-<script>
-  const today = new Date().toISOString().split("T")[0];
-
-  const quotes = [
-    "Small daily improvements lead to massive results.",
-    "Discipline > Motivation.",
-    "Consistency builds greatness.",
-    "Win the day.",
-    "Progress, not perfection.",
-    "Show up even when you don't feel like it."
-  ];
-
-  function getDailyQuote() {
-    const index = new Date().getDate() % quotes.length;
-    return quotes[index];
-  }
-
-  function loadData() {
-    let data = JSON.parse(localStorage.getItem("habitSystem"));
-
-    if (!data) {
-      data = {
-        lastDate: today,
-        habits: [],
-        perfectDays: 0,
-        lifetimeCompletions: 0,
-        yesterdayCompletion: 0
-      };
-      localStorage.setItem("habitSystem", JSON.stringify(data));
-      return data;
-    }
-
-    if (data.lastDate !== today) {
-      let completedYesterday = data.habits.filter(h => h.completed).length;
-      let totalHabits = data.habits.length;
-
-      data.yesterdayCompletion = totalHabits === 0 ? 0 :
-        Math.round((completedYesterday / totalHabits) * 100);
-
-      if (completedYesterday === totalHabits && totalHabits > 0) {
-        data.perfectDays += 1;
-      }
-
-      data.habits.forEach(habit => {
-        if (habit.completed) {
-          habit.streak += 1;
-          data.lifetimeCompletions += 1;
-        } else {
-          habit.streak = 0;
-        }
-        habit.completed = false;
-      });
-
-      data.lastDate = today;
-      localStorage.setItem("habitSystem", JSON.stringify(data));
-    }
-
-    return data;
-  }
-
-  function saveData(data) {
-    localStorage.setItem("habitSystem", JSON.stringify(data));
-  }
-
-  function render() {
-    const data = loadData();
-    const list = document.getElementById("taskList");
-    list.innerHTML = "";
-
-    let completedToday = data.habits.filter(h => h.completed).length;
-    let total = data.habits.length;
-    let percent = total === 0 ? 0 :
-      Math.round((completedToday / total) * 100);
-
-    document.getElementById("progressBar").style.width =
-      percent + "%";
-
-    document.getElementById("dailyStats").innerText =
-      "Today: " + percent + "% Completed";
-
-    document.getElementById("lifetimeStats").innerText =
-      "🏆 Perfect Days: " + data.perfectDays +
-      " | Lifetime Completions: " + data.lifetimeCompletions;
-
-    document.getElementById("yesterdayStats").innerText =
-      "Yesterday: " + data.yesterdayCompletion + "% Completed";
-
-    document.getElementById("quoteBox").innerText =
-      "💬 " + getDailyQuote();
-
-    data.habits.forEach((habit, index) => {
-
-      const li = document.createElement("li");
-
-      const left = document.createElement("div");
-
-      const checkbox = document.createElement("input");
-      checkbox.type = "checkbox";
-      checkbox.checked = habit.completed;
-      checkbox.onchange = () => toggleHabit(index);
-
-      const span = document.createElement("span");
-      span.innerText = habit.text;
-      if (habit.completed) span.classList.add("completed");
-
-      const streak = document.createElement("div");
-      streak.className = "streak";
-      streak.innerText = "🔥 Streak: " +
-        habit.streak + " days";
-
-      left.appendChild(checkbox);
-      left.appendChild(span);
-      left.appendChild(streak);
-
-      const del = document.createElement("span");
-      del.className = "delete";
-      del.innerText = "X";
-      del.onclick = () => deleteHabit(index);
-
-      li.appendChild(left);
-      li.appendChild(del);
-
-      list.appendChild(li);
-    });
-  }
-
-  function addTask() {
-    const input =
-      document.getElementById("taskInput");
-
-    const text = input.value.trim();
-
-    if (!text) return;
-
-    const data = loadData();
-
-    data.habits.push({
-      text: text,
-      completed: false,
-      streak: 0
-    });
-
-    saveData(data);
-    input.value = "";
-    render();
-  }
-
-  function toggleHabit(index) {
-    const data = loadData();
-    data.habits[index].completed =
-      !data.habits[index].completed;
-    saveData(data);
-    render();
-  }
-
-  function deleteHabit(index) {
-    const data = loadData();
-    data.habits.splice(index, 1);
-    saveData(data);
-    render();
-  }
-
-  render();
-</script>
-
+<script src="app.js"></script>
 </body>
 </html>
