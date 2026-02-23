@@ -1,37 +1,37 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Daily Habit Tracker</title>
+  <title>Ultimate Habit Tracker</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       background: #0f172a;
       color: white;
-      text-align: center;
       margin: 0;
       padding: 0;
+      text-align: center;
     }
 
     h1 {
-      margin-top: 30px;
+      margin-top: 25px;
     }
 
     .container {
       max-width: 500px;
-      margin: 30px auto;
+      margin: 20px auto;
     }
 
     input {
       padding: 10px;
-      width: 70%;
+      width: 65%;
+      border-radius: 6px;
       border: none;
-      border-radius: 5px;
     }
 
     button {
       padding: 10px 15px;
+      border-radius: 6px;
       border: none;
-      border-radius: 5px;
       cursor: pointer;
       background: #22c55e;
       color: white;
@@ -48,10 +48,11 @@
       background: #1e293b;
       padding: 10px;
       margin: 8px 0;
-      border-radius: 5px;
+      border-radius: 8px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      font-size: 14px;
     }
 
     .completed {
@@ -59,92 +60,168 @@
       opacity: 0.6;
     }
 
+    .streak {
+      font-size: 12px;
+      color: #facc15;
+    }
+
     .delete {
       background: red;
-      padding: 5px 8px;
-      border-radius: 4px;
+      padding: 4px 8px;
+      border-radius: 5px;
       cursor: pointer;
+      font-size: 12px;
     }
+
+    .progress-container {
+      background: #334155;
+      border-radius: 20px;
+      margin-top: 20px;
+      height: 20px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: #22c55e;
+      width: 0%;
+      transition: width 0.3s;
+    }
+
+    .percentage {
+      margin-top: 5px;
+      font-size: 14px;
+    }
+
   </style>
 </head>
 
 <body>
 
-  <h1>🔥 Daily Habit Tracker</h1>
+<h1>🔥 Ultimate Habit Tracker</h1>
 
-  <div class="container">
-    <input type="text" id="taskInput" placeholder="Add a daily habit">
-    <button onclick="addTask()">Add</button>
+<div class="container">
+  <input type="text" id="taskInput" placeholder="Add a daily habit">
+  <button onclick="addTask()">Add</button>
 
-    <ul id="taskList"></ul>
+  <div class="progress-container">
+    <div class="progress-bar" id="progressBar"></div>
   </div>
+  <div class="percentage" id="percentageText">0% Completed</div>
+
+  <ul id="taskList"></ul>
+</div>
 
 <script>
-  function loadTasks() {
-    return JSON.parse(localStorage.getItem("habitTasks")) || [];
+  const today = new Date().toISOString().split("T")[0];
+
+  function loadData() {
+    let data = JSON.parse(localStorage.getItem("habitData"));
+
+    if (!data) {
+      data = { lastDate: today, habits: [] };
+      localStorage.setItem("habitData", JSON.stringify(data));
+      return data;
+    }
+
+    if (data.lastDate !== today) {
+      data.habits.forEach(habit => {
+        if (habit.completed) {
+          habit.streak += 1;
+        } else {
+          habit.streak = 0;
+        }
+        habit.completed = false;
+      });
+      data.lastDate = today;
+      localStorage.setItem("habitData", JSON.stringify(data));
+    }
+
+    return data;
   }
 
-  function saveTasks(tasks) {
-    localStorage.setItem("habitTasks", JSON.stringify(tasks));
+  function saveData(data) {
+    localStorage.setItem("habitData", JSON.stringify(data));
   }
 
-  function renderTasks() {
-    const tasks = loadTasks();
+  function render() {
+    const data = loadData();
     const list = document.getElementById("taskList");
     list.innerHTML = "";
 
-    tasks.forEach((task, index) => {
+    let completedCount = 0;
+
+    data.habits.forEach((habit, index) => {
+      if (habit.completed) completedCount++;
+
       const li = document.createElement("li");
+
+      const leftDiv = document.createElement("div");
 
       const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
-      checkbox.checked = task.completed;
-      checkbox.onchange = () => toggleTask(index);
+      checkbox.checked = habit.completed;
+      checkbox.onchange = () => toggleHabit(index);
 
       const span = document.createElement("span");
-      span.innerText = task.text;
-      if (task.completed) span.classList.add("completed");
+      span.innerText = habit.text;
+      if (habit.completed) span.classList.add("completed");
+
+      const streak = document.createElement("div");
+      streak.className = "streak";
+      streak.innerText = "🔥 Streak: " + habit.streak + " days";
+
+      leftDiv.appendChild(checkbox);
+      leftDiv.appendChild(span);
+      leftDiv.appendChild(streak);
 
       const deleteBtn = document.createElement("span");
-      deleteBtn.innerText = "X";
       deleteBtn.className = "delete";
-      deleteBtn.onclick = () => deleteTask(index);
+      deleteBtn.innerText = "X";
+      deleteBtn.onclick = () => deleteHabit(index);
 
-      li.appendChild(checkbox);
-      li.appendChild(span);
+      li.appendChild(leftDiv);
       li.appendChild(deleteBtn);
 
       list.appendChild(li);
     });
+
+    updateProgress(data.habits.length, completedCount);
+  }
+
+  function updateProgress(total, completed) {
+    const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
+    document.getElementById("progressBar").style.width = percent + "%";
+    document.getElementById("percentageText").innerText = percent + "% Completed";
   }
 
   function addTask() {
     const input = document.getElementById("taskInput");
-    const taskText = input.value.trim();
-    if (taskText === "") return;
+    const text = input.value.trim();
+    if (text === "") return;
 
-    const tasks = loadTasks();
-    tasks.push({ text: taskText, completed: false });
-    saveTasks(tasks);
+    const data = loadData();
+    data.habits.push({ text: text, completed: false, streak: 0 });
+    saveData(data);
     input.value = "";
-    renderTasks();
+    render();
   }
 
-  function toggleTask(index) {
-    const tasks = loadTasks();
-    tasks[index].completed = !tasks[index].completed;
-    saveTasks(tasks);
-    renderTasks();
+  function toggleHabit(index) {
+    const data = loadData();
+    data.habits[index].completed = !data.habits[index].completed;
+    saveData(data);
+    render();
   }
 
-  function deleteTask(index) {
-    const tasks = loadTasks();
-    tasks.splice(index, 1);
-    saveTasks(tasks);
-    renderTasks();
+  function deleteHabit(index) {
+    const data = loadData();
+    data.habits.splice(index, 1);
+    saveData(data);
+    render();
   }
 
-  renderTasks();
+  render();
 </script>
 
 </body>
