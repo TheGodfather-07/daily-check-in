@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Daily Check-In</title>
+  <title>Daily Habit Tracker</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -51,6 +51,12 @@
       border-radius: 5px;
       display: flex;
       justify-content: space-between;
+      align-items: center;
+    }
+
+    .completed {
+      text-decoration: line-through;
+      opacity: 0.6;
     }
 
     .delete {
@@ -59,49 +65,27 @@
       border-radius: 4px;
       cursor: pointer;
     }
-
-    .date {
-      opacity: 0.7;
-      margin-bottom: 10px;
-    }
   </style>
 </head>
 
 <body>
 
-  <h1>🔥 Daily Check-In</h1>
-  <div class="date" id="date"></div>
+  <h1>🔥 Daily Habit Tracker</h1>
 
   <div class="container">
-    <input type="text" id="taskInput" placeholder="Enter today's task">
+    <input type="text" id="taskInput" placeholder="Add a daily habit">
     <button onclick="addTask()">Add</button>
 
     <ul id="taskList"></ul>
   </div>
 
 <script>
-  const today = new Date().toISOString().split("T")[0];
-  document.getElementById("date").innerText = "Date: " + today;
-
   function loadTasks() {
-    const savedData = JSON.parse(localStorage.getItem("dailyTasks"));
-
-    if (!savedData || savedData.date !== today) {
-      localStorage.setItem("dailyTasks", JSON.stringify({
-        date: today,
-        tasks: []
-      }));
-      return [];
-    }
-
-    return savedData.tasks;
+    return JSON.parse(localStorage.getItem("habitTasks")) || [];
   }
 
   function saveTasks(tasks) {
-    localStorage.setItem("dailyTasks", JSON.stringify({
-      date: today,
-      tasks: tasks
-    }));
+    localStorage.setItem("habitTasks", JSON.stringify(tasks));
   }
 
   function renderTasks() {
@@ -111,10 +95,25 @@
 
     tasks.forEach((task, index) => {
       const li = document.createElement("li");
-      li.innerHTML = `
-        ${task}
-        <span class="delete" onclick="deleteTask(${index})">X</span>
-      `;
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.checked = task.completed;
+      checkbox.onchange = () => toggleTask(index);
+
+      const span = document.createElement("span");
+      span.innerText = task.text;
+      if (task.completed) span.classList.add("completed");
+
+      const deleteBtn = document.createElement("span");
+      deleteBtn.innerText = "X";
+      deleteBtn.className = "delete";
+      deleteBtn.onclick = () => deleteTask(index);
+
+      li.appendChild(checkbox);
+      li.appendChild(span);
+      li.appendChild(deleteBtn);
+
       list.appendChild(li);
     });
   }
@@ -125,9 +124,16 @@
     if (taskText === "") return;
 
     const tasks = loadTasks();
-    tasks.push(taskText);
+    tasks.push({ text: taskText, completed: false });
     saveTasks(tasks);
     input.value = "";
+    renderTasks();
+  }
+
+  function toggleTask(index) {
+    const tasks = loadTasks();
+    tasks[index].completed = !tasks[index].completed;
+    saveTasks(tasks);
     renderTasks();
   }
 
