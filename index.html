@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Ultimate Habit Tracker</title>
+  <title>Ultimate Productivity System</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -12,12 +12,10 @@
       text-align: center;
     }
 
-    h1 {
-      margin-top: 25px;
-    }
+    h1 { margin-top: 20px; }
 
     .container {
-      max-width: 500px;
+      max-width: 600px;
       margin: 20px auto;
     }
 
@@ -60,10 +58,7 @@
       opacity: 0.6;
     }
 
-    .streak {
-      font-size: 12px;
-      color: #facc15;
-    }
+    .streak { font-size: 12px; color: #facc15; }
 
     .delete {
       background: red;
@@ -88,60 +83,104 @@
       transition: width 0.3s;
     }
 
-    .percentage {
-      margin-top: 5px;
+    .stats {
+      margin-top: 15px;
       font-size: 14px;
     }
 
+    .quote {
+      margin-top: 20px;
+      font-style: italic;
+      opacity: 0.8;
+    }
   </style>
 </head>
 
 <body>
 
-<h1>🔥 Ultimate Habit Tracker</h1>
+<h1>🔥 Ultimate Productivity System</h1>
 
 <div class="container">
+
   <input type="text" id="taskInput" placeholder="Add a daily habit">
   <button onclick="addTask()">Add</button>
 
   <div class="progress-container">
     <div class="progress-bar" id="progressBar"></div>
   </div>
-  <div class="percentage" id="percentageText">0% Completed</div>
+
+  <div class="stats" id="dailyStats"></div>
+  <div class="stats" id="lifetimeStats"></div>
+  <div class="stats" id="yesterdayStats"></div>
 
   <ul id="taskList"></ul>
+
+  <div class="quote" id="quoteBox"></div>
+
 </div>
 
 <script>
   const today = new Date().toISOString().split("T")[0];
 
+  const quotes = [
+    "Small daily improvements lead to massive results.",
+    "Discipline > Motivation.",
+    "Consistency builds greatness.",
+    "Win the day.",
+    "Progress, not perfection.",
+    "Show up even when you don't feel like it."
+  ];
+
+  function getDailyQuote() {
+    const index = new Date().getDate() % quotes.length;
+    return quotes[index];
+  }
+
   function loadData() {
-    let data = JSON.parse(localStorage.getItem("habitData"));
+    let data = JSON.parse(localStorage.getItem("habitSystem"));
 
     if (!data) {
-      data = { lastDate: today, habits: [] };
-      localStorage.setItem("habitData", JSON.stringify(data));
+      data = {
+        lastDate: today,
+        habits: [],
+        perfectDays: 0,
+        lifetimeCompletions: 0,
+        yesterdayCompletion: 0
+      };
+      localStorage.setItem("habitSystem", JSON.stringify(data));
       return data;
     }
 
     if (data.lastDate !== today) {
+      let completedYesterday = data.habits.filter(h => h.completed).length;
+      let totalHabits = data.habits.length;
+
+      data.yesterdayCompletion = totalHabits === 0 ? 0 :
+        Math.round((completedYesterday / totalHabits) * 100);
+
+      if (completedYesterday === totalHabits && totalHabits > 0) {
+        data.perfectDays += 1;
+      }
+
       data.habits.forEach(habit => {
         if (habit.completed) {
           habit.streak += 1;
+          data.lifetimeCompletions += 1;
         } else {
           habit.streak = 0;
         }
         habit.completed = false;
       });
+
       data.lastDate = today;
-      localStorage.setItem("habitData", JSON.stringify(data));
+      localStorage.setItem("habitSystem", JSON.stringify(data));
     }
 
     return data;
   }
 
   function saveData(data) {
-    localStorage.setItem("habitData", JSON.stringify(data));
+    localStorage.setItem("habitSystem", JSON.stringify(data));
   }
 
   function render() {
@@ -149,14 +188,32 @@
     const list = document.getElementById("taskList");
     list.innerHTML = "";
 
-    let completedCount = 0;
+    let completedToday = data.habits.filter(h => h.completed).length;
+    let total = data.habits.length;
+    let percent = total === 0 ? 0 :
+      Math.round((completedToday / total) * 100);
+
+    document.getElementById("progressBar").style.width =
+      percent + "%";
+
+    document.getElementById("dailyStats").innerText =
+      "Today: " + percent + "% Completed";
+
+    document.getElementById("lifetimeStats").innerText =
+      "🏆 Perfect Days: " + data.perfectDays +
+      " | Lifetime Completions: " + data.lifetimeCompletions;
+
+    document.getElementById("yesterdayStats").innerText =
+      "Yesterday: " + data.yesterdayCompletion + "% Completed";
+
+    document.getElementById("quoteBox").innerText =
+      "💬 " + getDailyQuote();
 
     data.habits.forEach((habit, index) => {
-      if (habit.completed) completedCount++;
 
       const li = document.createElement("li");
 
-      const leftDiv = document.createElement("div");
+      const left = document.createElement("div");
 
       const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
@@ -169,39 +226,41 @@
 
       const streak = document.createElement("div");
       streak.className = "streak";
-      streak.innerText = "🔥 Streak: " + habit.streak + " days";
+      streak.innerText = "🔥 Streak: " +
+        habit.streak + " days";
 
-      leftDiv.appendChild(checkbox);
-      leftDiv.appendChild(span);
-      leftDiv.appendChild(streak);
+      left.appendChild(checkbox);
+      left.appendChild(span);
+      left.appendChild(streak);
 
-      const deleteBtn = document.createElement("span");
-      deleteBtn.className = "delete";
-      deleteBtn.innerText = "X";
-      deleteBtn.onclick = () => deleteHabit(index);
+      const del = document.createElement("span");
+      del.className = "delete";
+      del.innerText = "X";
+      del.onclick = () => deleteHabit(index);
 
-      li.appendChild(leftDiv);
-      li.appendChild(deleteBtn);
+      li.appendChild(left);
+      li.appendChild(del);
 
       list.appendChild(li);
     });
-
-    updateProgress(data.habits.length, completedCount);
-  }
-
-  function updateProgress(total, completed) {
-    const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
-    document.getElementById("progressBar").style.width = percent + "%";
-    document.getElementById("percentageText").innerText = percent + "% Completed";
   }
 
   function addTask() {
-    const input = document.getElementById("taskInput");
+    const input =
+      document.getElementById("taskInput");
+
     const text = input.value.trim();
-    if (text === "") return;
+
+    if (!text) return;
 
     const data = loadData();
-    data.habits.push({ text: text, completed: false, streak: 0 });
+
+    data.habits.push({
+      text: text,
+      completed: false,
+      streak: 0
+    });
+
     saveData(data);
     input.value = "";
     render();
@@ -209,7 +268,8 @@
 
   function toggleHabit(index) {
     const data = loadData();
-    data.habits[index].completed = !data.habits[index].completed;
+    data.habits[index].completed =
+      !data.habits[index].completed;
     saveData(data);
     render();
   }
